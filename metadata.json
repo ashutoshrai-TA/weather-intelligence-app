@@ -1,0 +1,6 @@
+{
+  "name": "Weather Intelligence",
+  "description": "An accessible weather platform providing real-time geocoding, hyper-local forecasts, customizable hourly widgets, automated compliance testing, and server-synchronized preferences powered by Gemini AI.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
