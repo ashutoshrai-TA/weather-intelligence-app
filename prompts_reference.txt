@@ -129,7 +129,7 @@ Several UI elements previously relied on low-contrast `slate-400` or `slate-500`
    - Dashboard Favorites Bar: Improved label contrast for easy visibility.
 
 ------------------------------------------------------------------------
-PROMPT 4: Exporting Prompt Logs
+PROMPT 4: Exporting Prompt Logs for App
 ------------------------------------------------------------------------
 ● USER REQUEST:
 "copy all the prompt in one text file SO i can download for my reference"
@@ -138,13 +138,37 @@ PROMPT 4: Exporting Prompt Logs
 - Generated this unified, easy-to-read text file (`/prompts_reference.txt`) outlining each completed feature request.
 
 ------------------------------------------------------------------------
-PROMPT 5: Entire Chat History Request (This Step)
+PROMPT 5: Entire Chat History Request
 ------------------------------------------------------------------------
 ● USER REQUEST:
 "Add entire chat history"
 
 ● IMPLEMENTATION COMPLETED:
 - Expanded the `/prompts_reference.txt` document into a full-scale interaction journal, incorporating the precise chat history, step-by-step engineering plans, specific code modifications, and runtime metrics for ultimate clarity and archival utility.
+
+------------------------------------------------------------------------
+PROMPT 6: Invalid City Search Validation
+------------------------------------------------------------------------
+● USER REQUEST:
+"display message in of invalid city if it not found"
+
+● ANALYSIS & PLANNING:
+If a user searches for a query that returns empty list results, the dropdown would previously simply disappear, offering no immediate visual cue. To enhance usability and accessibility, we will design a dedicated search error state in `App.tsx` and render a clear warning message within the search suggestions panel.
+
+● IMPLEMENTATION COMPLETED:
+1. Created `searchError` react hook state in `App.tsx` to hold error feedback strings.
+2. Hooked search input's `onChange` event to clear `searchError` instantly as the user types.
+3. Updated geocoding response checks to set a descriptive "No locations found matching..." notice when results are empty, or "Location search failed..." on network failures.
+4. Rendered a highly readable, warning-bordered caution alert directly inside the dropdown container matching both high contrast and dark mode color palettes.
+
+------------------------------------------------------------------------
+PROMPT 7: Final Documentation Archival Request (This Step)
+------------------------------------------------------------------------
+● USER REQUEST:
+"add this prompt iin txt docs"
+
+● IMPLEMENTATION COMPLETED:
+- Updated the comprehensive `/prompts_reference.txt` report to permanently persist the "Invalid City Search Validation" requirements, implementation metrics, and design schemas, fully completing the custom request cycle.
 
 ========================================================================
 TECHNICAL CODE MODIFICATIONS LOG (SUMMARY)
@@ -155,6 +179,9 @@ TECHNICAL CODE MODIFICATIONS LOG (SUMMARY)
 2. [src/App.tsx]
    - Appended `visibility` parameter to current forecast API request URL.
    - Populated the state's current weather object with active visibility readings.
+   - Introduced `searchError` state.
+   - Wired input `onChange` to clear errors on user keyboard strokes.
+   - Rendered an SVG warning symbol alongside a responsive "No locations found" dialog card inside the suggestions dropdown.
 
 3. [src/components/WeatherDashboard.tsx]
    - Engineered `getChartColors()` helper utilizing current conditions.

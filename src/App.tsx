@@ -75,6 +75,7 @@ export default function App() {
   const [searchResults, setSearchResults] = useState<LocationInfo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   // Weather Telemetry States
   const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -376,6 +377,7 @@ export default function App() {
 
     setIsSearching(true);
     setShowSuggestions(true);
+    setSearchError(null);
     announceSpeech(`Searching for matching location coordinates for '${searchQuery}'...`, true);
 
     try {
@@ -390,10 +392,12 @@ export default function App() {
       if (results.length > 0) {
         announceSpeech(`Search complete. Found ${results.length} matching locations. Use Down Arrow or Tab to select.`);
       } else {
+        setSearchError(`No locations found matching "${searchQuery}". Please try a different city name.`);
         announceSpeech(`No locations found matching '${searchQuery}'. Please try a different city name.`);
       }
     } catch (err) {
       console.error("Geocoding failed:", err);
+      setSearchError("Location search failed. Please verify your connection.");
       announceSpeech("Location search failed. Please verify your connection.");
     } finally {
       setIsSearching(false);
@@ -404,6 +408,7 @@ export default function App() {
     setSearchQuery("");
     setSearchResults([]);
     setShowSuggestions(false);
+    setSearchError(null);
     fetchWeather(loc);
   };
 
@@ -965,7 +970,10 @@ export default function App() {
                   type="search"
                   required
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (searchError) setSearchError(null);
+                  }}
                   onFocus={() => setShowSuggestions(true)}
                   placeholder="Search globally by city name (e.g., Tokyo, Oslo, San Francisco)..."
                   className="w-full text-sm pl-11 pr-24 py-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-4 focus:ring-sky-200 bg-slate-50/50 dark:bg-slate-950 dark:text-white accessible-focus"
@@ -981,7 +989,7 @@ export default function App() {
               </div>
 
               {/* Suggestions suggestion panel dropdown */}
-              {showSuggestions && (searchResults.length > 0 || isSearching) && (
+              {showSuggestions && (searchResults.length > 0 || isSearching || searchError) && (
                 <div 
                   className={`absolute left-0 right-0 mt-2 rounded-xl border shadow-xl z-50 ${
                     highContrast 
@@ -995,6 +1003,13 @@ export default function App() {
                     <div className="p-4 text-xs text-slate-400 font-mono text-center flex items-center justify-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin text-sky-500" />
                       Resolving geocoding coordinates...
+                    </div>
+                  ) : searchError ? (
+                    <div className="p-4 text-xs text-center flex flex-col items-center justify-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" aria-hidden="true" />
+                      <span className={`font-semibold ${highContrast ? "text-yellow-400" : "text-red-600 dark:text-red-400"}`} role="alert">
+                        {searchError}
+                      </span>
                     </div>
                   ) : (
                     <div className="py-1">
