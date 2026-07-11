@@ -125,6 +125,37 @@ app.post("/api/weather/intelligence", async (req, res) => {
       return res.status(400).json({ error: "Missing weather context data" });
     }
 
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("GEMINI_API_KEY environment variable is not set. Using smart meteorological fallback system.");
+      const mockFallbacks = [
+        "Bring along a durable jacket and umbrella to ensure comfort.",
+        "Stay well-hydrated throughout the day and seek shade during peak UV hours.",
+        "Dress in soft breathable layers and keep an eye on sudden wind shifts."
+      ];
+      const chosenFallback = mockFallbacks[Math.floor(Math.random() * mockFallbacks.length)];
+      
+      return res.json({
+        summary: `[Fallback Analysis] Local weather suggests a temperature of ${current.temp || "normal"}°C. ${chosenFallback}`,
+        clothing: current.temp < 15 
+          ? ["Warm insulated coat", "Thermal socks", "Scarf or neck gaiter"] 
+          : ["Light breathable shirt", "Comfortable shorts or pants", "Polarized sunglasses"],
+        outdoorRating: current.temp > 15 && current.temp < 28 ? 8 : 5,
+        outdoorDetails: "Temperature is within normal thresholds. Wind is manageable, but prepare for local temperature variations.",
+        healthTips: [
+          "Monitor local air quality if you have dynamic respiratory sensitivity.",
+          "Ensure consistent water intake to stay perfectly hydrated.",
+          "Take brief breaks from continuous outdoor exercises if temperature is elevated."
+        ],
+        hazardChecklist: {
+          level: "none",
+          message: "No severe meteorological warnings are currently active for this coordinate zone.",
+          precautions: ["Always check local conditions before starting long outdoor trips."]
+        },
+        _isFallback: true,
+        _errorMessage: "GEMINI_API_KEY not configured"
+      });
+    }
+
     const ai = getGeminiClient();
 
     const prompt = `

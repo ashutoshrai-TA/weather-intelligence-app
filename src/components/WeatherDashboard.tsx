@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Sun, 
   Cloud, 
@@ -23,8 +23,21 @@ import {
   Info,
   Compass,
   ArrowDownUp,
-  Download
+  Download,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  AreaChart as RechartsAreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 import { WeatherData, WeatherAlert, WidgetConfig, LocationInfo } from "../types";
 import { getWeatherEmoji } from "../utils/weatherCodes";
 
@@ -56,6 +69,8 @@ export default function WeatherDashboard({
   const isFavorite = favorites.some(
     (f) => f.latitude === weather.location.latitude && f.longitude === weather.location.longitude
   );
+
+  const [showMoreDetails, setShowMoreDetails] = React.useState(false);
 
   // Map WMO codes to appropriate Lucide icons for high-readability visual reinforcement
   const getWeatherIcon = (code: number, className = "w-6 h-6") => {
@@ -90,6 +105,138 @@ export default function WeatherDashboard({
 
   // Helper to filter and limit hourly list based on widget hours count
   const hourlyToShow = weather.hourly.slice(0, widgets.hourlyHoursCount || 8);
+
+  const getChartColors = () => {
+    if (highContrast) {
+      return {
+        highStroke: "#facc15",
+        highFill: "none",
+        lowStroke: "#ffffff",
+        lowFill: "none",
+        legendHigh: "text-yellow-400",
+        legendLow: "text-white",
+        badgeHigh: "bg-yellow-400",
+        badgeLow: "bg-white",
+        gridColor: "#ffffff",
+        highStopColor: "#facc15",
+        lowStopColor: "#ffffff",
+      };
+    }
+
+    const currentTemp = weather.current.temp;
+    const currentCode = weather.current.weatherCode;
+
+    // Determine condition type
+    let cond = "clear";
+    if (currentCode === 0 || currentCode === 1) cond = "clear";
+    else if (currentCode === 2 || currentCode === 3 || currentCode === 45 || currentCode === 48) cond = "cloudy";
+    else if ((currentCode >= 51 && currentCode <= 67) || (currentCode >= 80 && currentCode <= 82)) cond = "rain";
+    else if ((currentCode >= 71 && currentCode <= 77) || (currentCode >= 85 && currentCode <= 86)) cond = "snow";
+    else if (currentCode >= 95 && currentCode <= 99) cond = "storm";
+
+    // 1. Below-Freezing Tones (Cooler blues, ice-cold cyans, frost greys)
+    if (currentTemp <= 0 || cond === "snow") {
+      return {
+        highStroke: "#06b6d4", // cyan-500
+        highFill: "url(#colorHigh)",
+        lowStroke: "#38bdf8",  // sky-400
+        lowFill: "url(#colorLow)",
+        legendHigh: "text-cyan-500 dark:text-cyan-400",
+        legendLow: "text-sky-500 dark:text-sky-400",
+        badgeHigh: "bg-cyan-500",
+        badgeLow: "bg-sky-400",
+        gridColor: "rgba(148, 163, 184, 0.12)",
+        highStopColor: "#06b6d4",
+        lowStopColor: "#38bdf8",
+      };
+    }
+
+    // 2. Heatwave Tones (Intense warm crimson, deep orange, burning gold)
+    if (currentTemp >= 32) {
+      return {
+        highStroke: "#dc2626", // red-600
+        highFill: "url(#colorHigh)",
+        lowStroke: "#f97316",  // orange-500
+        lowFill: "url(#colorLow)",
+        legendHigh: "text-red-600 dark:text-red-400",
+        legendLow: "text-orange-500 dark:text-orange-400",
+        badgeHigh: "bg-red-600",
+        badgeLow: "bg-orange-500",
+        gridColor: "rgba(148, 163, 184, 0.12)",
+        highStopColor: "#dc2626",
+        lowStopColor: "#f97316",
+      };
+    }
+
+    // 3. Stormy Weather (Violet, purple tones)
+    if (cond === "storm") {
+      return {
+        highStroke: "#8b5cf6", // violet-500
+        highFill: "url(#colorHigh)",
+        lowStroke: "#a855f7",  // purple-500
+        lowFill: "url(#colorLow)",
+        legendHigh: "text-violet-500 dark:text-violet-400",
+        legendLow: "text-purple-500 dark:text-purple-400",
+        badgeHigh: "bg-violet-500",
+        badgeLow: "bg-purple-500",
+        gridColor: "rgba(148, 163, 184, 0.12)",
+        highStopColor: "#8b5cf6",
+        lowStopColor: "#a855f7",
+      };
+    }
+
+    // 4. Rainy Weather (Indigo/darker ocean blue tones)
+    if (cond === "rain") {
+      return {
+        highStroke: "#4f46e5", // indigo-600
+        highFill: "url(#colorHigh)",
+        lowStroke: "#2563eb",  // blue-600
+        lowFill: "url(#colorLow)",
+        legendHigh: "text-indigo-600 dark:text-indigo-400",
+        legendLow: "text-blue-600 dark:text-blue-400",
+        badgeHigh: "bg-indigo-600",
+        badgeLow: "bg-blue-600",
+        gridColor: "rgba(148, 163, 184, 0.12)",
+        highStopColor: "#4f46e5",
+        lowStopColor: "#2563eb",
+      };
+    }
+
+    // 5. Cloudy Weather (Slate/steel grey tones)
+    if (cond === "cloudy") {
+      return {
+        highStroke: "#64748b", // slate-500
+        highFill: "url(#colorHigh)",
+        lowStroke: "#94a3b8",  // slate-400
+        lowFill: "url(#colorLow)",
+        legendHigh: "text-slate-600 dark:text-slate-400",
+        legendLow: "text-slate-500 dark:text-slate-400",
+        badgeHigh: "bg-slate-500",
+        badgeLow: "bg-slate-400",
+        gridColor: "rgba(148, 163, 184, 0.12)",
+        highStopColor: "#64748b",
+        lowStopColor: "#94a3b8",
+      };
+    }
+
+    // 6. Default Clear/Sunny Standard Warm (Orange/sky blue matching Sunny Amber/Breezy Azure)
+    const isWarm = currentTemp >= 18;
+    return {
+      highStroke: isWarm ? "#f97316" : "#0284c7", // orange-500 vs sky-600
+      highFill: "url(#colorHigh)",
+      lowStroke: isWarm ? "#f59e0b" : "#38bdf8",  // amber-500 vs sky-400
+      lowFill: "url(#colorLow)",
+      legendHigh: isWarm ? "text-orange-500" : "text-sky-600 dark:text-sky-400",
+      legendLow: isWarm ? "text-amber-500" : "text-sky-400",
+      badgeHigh: isWarm ? "bg-orange-500" : "bg-sky-600",
+      badgeLow: isWarm ? "bg-amber-500" : "bg-sky-400",
+      gridColor: "rgba(148, 163, 184, 0.12)",
+      highStopColor: isWarm ? "#f97316" : "#0284c7",
+      lowStopColor: isWarm ? "#f59e0b" : "#38bdf8",
+    };
+  };
+
+  const chartColors = getChartColors();
 
   const handleFavoriteClick = () => {
     onToggleFavorite(weather.location);
@@ -164,13 +311,23 @@ export default function WeatherDashboard({
   };
 
   const containerVariants = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 0, y: 15 },
     show: {
       opacity: 1,
+      y: 0,
       transition: {
-        staggerChildren: 0.08,
+        staggerChildren: 0.05,
+        delayChildren: 0.02,
       },
     },
+    exit: {
+      opacity: 0,
+      y: -15,
+      transition: {
+        ease: "easeInOut",
+        duration: 0.15
+      }
+    }
   };
 
   const itemVariants = {
@@ -186,6 +343,54 @@ export default function WeatherDashboard({
     },
   };
 
+  const hourlyContainerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.02,
+      },
+    },
+  };
+
+  const hourlyItemVariants = {
+    hidden: { opacity: 0, y: 8, scale: 0.97 },
+    show: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1, 
+      transition: { 
+        type: "spring", 
+        stiffness: 120, 
+        damping: 14 
+      } 
+    },
+  };
+
+  const dailyContainerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.03,
+      },
+    },
+  };
+
+  const dailyItemVariants = {
+    hidden: { opacity: 0, y: 10, scale: 0.96 },
+    show: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1, 
+      transition: { 
+        type: "spring", 
+        stiffness: 110, 
+        damping: 14 
+      } 
+    },
+  };
+
   return (
     <motion.div 
       key={`${weather.location.latitude}_${weather.location.longitude}_${weather.fetchedAt}`}
@@ -193,6 +398,7 @@ export default function WeatherDashboard({
       variants={containerVariants}
       initial="hidden"
       animate="show"
+      exit="exit"
     >
       {/* Location Header Block */}
       <motion.div 
@@ -310,27 +516,79 @@ export default function WeatherDashboard({
                 <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{weather.current.windSpeed} km/h</p>
               </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-orange-50 dark:bg-slate-800 text-orange-600 dark:text-orange-400" aria-hidden="true">
-                <Sun className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400">UV Index</p>
-                <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{weather.current.uvIndex}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-purple-50 dark:bg-slate-800 text-purple-600 dark:text-purple-400" aria-hidden="true">
-                <Compass className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400">Pressure</p>
-                <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{Math.round(weather.current.pressure)} hPa</p>
-              </div>
-            </div>
           </div>
+
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/60 flex justify-center">
+            <button
+              onClick={() => {
+                setShowMoreDetails(!showMoreDetails);
+                announceSpeech(showMoreDetails ? "Collapsed additional meteorological details." : "Expanded additional meteorological details including pressure, UV index, precipitation, and visibility.");
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-slate-800/50 rounded-lg transition-all cursor-pointer select-none"
+              aria-expanded={showMoreDetails}
+              aria-controls="expanded-meteorological-details"
+            >
+              {showMoreDetails ? "Show Less" : "Show More"}
+              {showMoreDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {showMoreDetails && (
+              <motion.div
+                id="expanded-meteorological-details"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-orange-50 dark:bg-slate-800 text-orange-600 dark:text-orange-400" aria-hidden="true">
+                      <Sun className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">UV Index</p>
+                      <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{weather.current.uvIndex}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400" aria-hidden="true">
+                      <CloudRain className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Rain Chance</p>
+                      <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{weather.current.precipitationProb}%</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-purple-50 dark:bg-slate-800 text-purple-600 dark:text-purple-400" aria-hidden="true">
+                      <Compass className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Pressure</p>
+                      <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{Math.round(weather.current.pressure)} hPa</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-teal-50 dark:bg-slate-800 text-teal-600 dark:text-teal-400" aria-hidden="true">
+                      <Eye className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Visibility</p>
+                      <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">
+                        {((weather.current.visibility !== undefined ? weather.current.visibility : 10000) / 1000).toFixed(1)} km
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.section>
 
         {/* Right 7 Columns: Gemini Weather Intelligence Advisor */}
@@ -358,98 +616,120 @@ export default function WeatherDashboard({
               </button>
             </div>
 
-            {loadingInsight ? (
-              <div className="py-12 flex flex-col items-center justify-center text-center">
-                <div className="relative flex items-center justify-center mb-4">
-                  <div className="animate-ping absolute inline-flex h-8 w-8 rounded-full bg-sky-400 opacity-20"></div>
-                  <Sparkles className="w-8 h-8 text-sky-500 animate-pulse" />
-                </div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">AI Weather Engine analyzing current telemetry...</p>
-                <p className="text-xs text-slate-400 mt-1 max-w-xs">Synthesizing clothing suggestions, outdoor metrics, and medical allergy guidelines.</p>
-              </div>
-            ) : aiInsight ? (
-              <div className="space-y-4 text-slate-700 dark:text-slate-300">
-                {/* 1. Summary Block */}
-                <div>
-                  <h3 className="sr-only">AI Synthesis Summary</h3>
-                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 border-l-4 border-sky-500 pl-3">
-                    {aiInsight.summary}
-                  </p>
-                </div>
-
-                {/* 2. Critical Alert/Hazard Indicator if active */}
-                {aiInsight.hazardChecklist && aiInsight.hazardChecklist.level !== "none" && (
-                  <div className={`p-3 rounded-xl flex items-start gap-2.5 ${getSeverityBadgeClass(aiInsight.hazardChecklist.level)}`}>
-                    <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider">A11y Safety Check Alert ({aiInsight.hazardChecklist.level})</p>
-                      <p className="text-xs font-medium mt-0.5">{aiInsight.hazardChecklist.message}</p>
-                      {aiInsight.hazardChecklist.precautions?.length > 0 && (
-                        <ul className="text-xs list-disc list-inside mt-1.5 space-y-0.5">
-                          {aiInsight.hazardChecklist.precautions.map((p: string, idx: number) => (
-                            <li key={idx}>{p}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
+            <AnimatePresence mode="wait">
+              {loadingInsight ? (
+                <motion.div
+                  key="loading-insights"
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.2 }}
+                  className="py-12 flex flex-col items-center justify-center text-center"
+                >
+                  <div className="relative flex items-center justify-center mb-4">
+                    <div className="animate-ping absolute inline-flex h-8 w-8 rounded-full bg-sky-400 opacity-20"></div>
+                    <Sparkles className="w-8 h-8 text-sky-500 animate-pulse" />
                   </div>
-                )}
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300">AI Weather Engine analyzing current telemetry...</p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-xs">Synthesizing clothing suggestions, outdoor metrics, and medical allergy guidelines.</p>
+                </motion.div>
+              ) : aiInsight ? (
+                <motion.div
+                  key="loaded-insights"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25 }}
+                  className="space-y-4 text-slate-700 dark:text-slate-300"
+                >
+                  {/* 1. Summary Block */}
+                  <div>
+                    <h3 className="sr-only">AI Synthesis Summary</h3>
+                    <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 border-l-4 border-sky-500 pl-3">
+                      {aiInsight.summary}
+                    </p>
+                  </div>
 
-                {/* 3. Outdoor activity rating widget & Attire suggestions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-3 rounded-xl shadow-sm">
-                    <p className="text-xs text-slate-400 font-medium">Outdoor Comfort Score</p>
-                    <div className="flex items-center gap-2.5 mt-1.5">
-                      <span className="text-2xl font-mono font-bold text-slate-900 dark:text-white">{aiInsight.outdoorRating}</span>
-                      <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-500 ${getRatingColorClass(aiInsight.outdoorRating)}`} 
-                          style={{ width: `${aiInsight.outdoorRating * 10}%` }}
-                        />
+                  {/* 2. Critical Alert/Hazard Indicator if active */}
+                  {aiInsight.hazardChecklist && aiInsight.hazardChecklist.level !== "none" && (
+                    <div className={`p-3 rounded-xl flex items-start gap-2.5 ${getSeverityBadgeClass(aiInsight.hazardChecklist.level)}`}>
+                      <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider">A11y Safety Check Alert ({aiInsight.hazardChecklist.level})</p>
+                        <p className="text-xs font-medium mt-0.5">{aiInsight.hazardChecklist.message}</p>
+                        {aiInsight.hazardChecklist.precautions?.length > 0 && (
+                          <ul className="text-xs list-disc list-inside mt-1.5 space-y-0.5">
+                            {aiInsight.hazardChecklist.precautions.map((p: string, idx: number) => (
+                              <li key={idx}>{p}</li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{aiInsight.outdoorDetails}</p>
-                  </div>
+                  )}
 
-                  <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-3 rounded-xl shadow-sm">
-                    <p className="text-xs text-slate-400 font-medium">Personal Wear Advisor</p>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {aiInsight.clothing?.map((item: string, i: number) => (
-                        <span 
-                          key={i} 
-                          className="bg-sky-50 dark:bg-slate-800 text-sky-800 dark:text-sky-300 text-[10px] px-2 py-0.5 rounded-md font-medium border border-sky-100 dark:border-slate-700 hover:scale-105 transition-all-short cursor-default"
-                        >
-                          {item}
-                        </span>
-                      ))}
+                  {/* 3. Outdoor activity rating widget & Attire suggestions */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-3 rounded-xl shadow-sm">
+                      <p className="text-xs text-slate-400 font-medium">Outdoor Comfort Score</p>
+                      <div className="flex items-center gap-2.5 mt-1.5">
+                        <span className="text-2xl font-mono font-bold text-slate-900 dark:text-white">{aiInsight.outdoorRating}</span>
+                        <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-500 ${getRatingColorClass(aiInsight.outdoorRating)}`} 
+                            style={{ width: `${aiInsight.outdoorRating * 10}%` }}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{aiInsight.outdoorDetails}</p>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-3 rounded-xl shadow-sm">
+                      <p className="text-xs text-slate-400 font-medium">Personal Wear Advisor</p>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {aiInsight.clothing?.map((item: string, i: number) => (
+                          <span 
+                            key={i} 
+                            className="bg-sky-50 dark:bg-slate-800 text-sky-800 dark:text-sky-300 text-[10px] px-2 py-0.5 rounded-md font-medium border border-sky-100 dark:border-slate-700 hover:scale-105 transition-all-short cursor-default"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* 4. Health Guidelines */}
-                <div className="border-t border-slate-200 dark:border-slate-800 pt-3">
-                  <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Health & Preventive Tips</h4>
-                  <ul className="mt-2 space-y-1">
-                    {aiInsight.healthTips?.map((tip: string, i: number) => (
-                      <li key={i} className="text-xs text-slate-600 dark:text-slate-300 flex items-start gap-1.5">
-                        <span className="text-sky-500 mt-0.5" aria-hidden="true">•</span>
-                        <span>{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ) : (
-              <div className="py-8 text-center text-slate-400 text-sm">
-                <Sparkles className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <button 
-                  onClick={onRefreshInsight} 
-                  className="text-sky-600 dark:text-sky-400 font-medium hover:underline text-xs"
+                  {/* 4. Health Guidelines */}
+                  <div className="border-t border-slate-200 dark:border-slate-800 pt-3">
+                    <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Health & Preventive Tips</h4>
+                    <ul className="mt-2 space-y-1">
+                      {aiInsight.healthTips?.map((tip: string, i: number) => (
+                        <li key={i} className="text-xs text-slate-600 dark:text-slate-300 flex items-start gap-1.5">
+                          <span className="text-sky-500 mt-0.5" aria-hidden="true">•</span>
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="no-insights"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="py-8 text-center text-slate-400 text-sm"
                 >
-                  Retrieve custom Gemini intelligence advice
-                </button>
-              </div>
-            )}
+                  <Sparkles className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <button 
+                    onClick={onRefreshInsight} 
+                    className="text-sky-600 dark:text-sky-400 font-medium hover:underline text-xs"
+                  >
+                    Retrieve custom Gemini intelligence advice
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           
           <div className="bg-slate-100 dark:bg-slate-800/30 p-2.5 rounded-xl text-[11px] text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800 mt-4 flex items-start gap-1.5">
@@ -482,11 +762,18 @@ export default function WeatherDashboard({
 
         {/* Dynamic widget views based on user widget config */}
         {widgets.layout === "grid" && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+          <motion.div 
+            variants={hourlyContainerVariants}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4"
+          >
             {hourlyToShow.map((hour, idx) => (
-              <div 
+              <motion.div 
                 key={idx} 
-                className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/25 flex flex-col items-center justify-between text-center transition-all-short hover:border-sky-300 dark:hover:border-sky-900"
+                variants={hourlyItemVariants}
+                whileHover={{ scale: 1.04, translateY: -3, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02)" }}
+                className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/25 flex flex-col items-center justify-between text-center transition-colors duration-300 hover:border-sky-300 dark:hover:border-sky-900"
                 tabIndex={0}
                 aria-label={`Hourly forecast for ${new Date(hour.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}: ${hour.temp}°C, feels like ${hour.apparentTemp}°C, ${hour.weatherDesc}`}
               >
@@ -530,17 +817,24 @@ export default function WeatherDashboard({
                     </p>
                   )}
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
         {widgets.layout === "list" && (
-          <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+          <motion.div 
+            variants={hourlyContainerVariants}
+            initial="hidden"
+            animate="show"
+            className="space-y-2 max-h-96 overflow-y-auto pr-1"
+          >
             {hourlyToShow.map((hour, idx) => (
-              <div 
+              <motion.div 
                 key={idx} 
-                className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/10 flex items-center justify-between gap-4 transition-all-short hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                variants={hourlyItemVariants}
+                whileHover={{ scale: 1.01, translateX: 3 }}
+                className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/10 flex items-center justify-between gap-4 transition-colors duration-300 hover:bg-slate-50 dark:hover:bg-slate-800/30 hover:border-sky-300 dark:hover:border-sky-900"
                 tabIndex={0}
                 aria-label={`Forecast at ${new Date(hour.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}: ${hour.temp} degrees Celcius.`}
               >
@@ -581,17 +875,24 @@ export default function WeatherDashboard({
                     </span>
                   )}
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
         {widgets.layout === "compact" && (
-          <div className="flex flex-wrap gap-2">
+          <motion.div 
+            variants={hourlyContainerVariants}
+            initial="hidden"
+            animate="show"
+            className="flex flex-wrap gap-2"
+          >
             {hourlyToShow.map((hour, idx) => (
-              <span 
+              <motion.span 
                 key={idx} 
-                className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 rounded-lg px-3 py-2 text-xs font-mono text-slate-700 dark:text-slate-300 flex items-center gap-2 hover:border-sky-300 dark:hover:border-sky-800"
+                variants={hourlyItemVariants}
+                whileHover={{ scale: 1.05 }}
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 rounded-lg px-3 py-2 text-xs font-mono text-slate-700 dark:text-slate-300 flex items-center gap-2 hover:border-sky-300 dark:hover:border-sky-800 transition-colors duration-300"
                 tabIndex={0}
                 aria-label={`Forecast at ${new Date(hour.time).toLocaleTimeString([], {hour: '2-digit'})} is ${Math.round(hour.temp)} degrees`}
               >
@@ -600,13 +901,164 @@ export default function WeatherDashboard({
                 </span>
                 <span aria-hidden="true">{getWeatherEmoji(hour.weatherCode)}</span>
                 <span className="font-bold text-slate-900 dark:text-white">{Math.round(hour.temp)}°C</span>
-              </span>
+              </motion.span>
             ))}
-          </div>
+          </motion.div>
         )}
       </motion.section>
 
-      {/* 5-Day Weekly Outlook Display */}
+      {/* 7-Day Temperature Trends Visualization Section */}
+      <motion.section
+        variants={itemVariants}
+        className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"
+        aria-labelledby="trends-chart-title"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+          <div>
+            <h2 id="trends-chart-title" className="text-lg font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+              7-Day Temperature Visualizer
+            </h2>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+              Interactive meteorological high-low trends and precipitation envelope
+            </p>
+          </div>
+          <div className="flex items-center gap-4 text-xs font-mono">
+            <span className={`flex items-center gap-1.5 font-semibold ${chartColors.legendHigh}`}>
+              <span className={`w-2.5 h-2.5 rounded-full ${chartColors.badgeHigh}`} />
+              High
+            </span>
+            <span className={`flex items-center gap-1.5 font-semibold ${chartColors.legendLow}`}>
+              <span className={`w-2.5 h-2.5 rounded-full ${chartColors.badgeLow}`} />
+              Low
+            </span>
+          </div>
+        </div>
+
+        <motion.div 
+          initial={{ clipPath: "inset(0 100% 0 0)", scaleY: 0.9, opacity: 0 }}
+          animate={{ clipPath: "inset(0 0% 0 0)", scaleY: 1, opacity: 1 }}
+          transition={{ duration: 1.3, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          style={{ transformOrigin: "bottom" }}
+          className="w-full h-[320px] -ml-2 sm:ml-0"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <RechartsAreaChart
+              data={weather.daily.map((day, idx) => {
+                const dateObj = new Date(day.date + "T12:00:00");
+                const isToday = idx === 0;
+                const dayLabel = isToday ? "Today" : dateObj.toLocaleDateString([], { weekday: "short" });
+                return {
+                  name: dayLabel,
+                  date: dateObj.toLocaleDateString([], { month: "short", day: "numeric" }),
+                  "High Temp": Math.round(day.tempMax),
+                  "Low Temp": Math.round(day.tempMin),
+                  precipitation: day.precipitationProb,
+                };
+              })}
+              margin={{ top: 15, right: 10, left: -15, bottom: 5 }}
+            >
+              <defs>
+                <linearGradient id="colorHigh" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={chartColors.highStopColor} stopOpacity={0.15} />
+                  <stop offset="95%" stopColor={chartColors.highStopColor} stopOpacity={0.01} />
+                </linearGradient>
+                <linearGradient id="colorLow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={chartColors.lowStopColor} stopOpacity={0.15} />
+                  <stop offset="95%" stopColor={chartColors.lowStopColor} stopOpacity={0.01} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke={chartColors.gridColor}
+              />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ 
+                  fill: highContrast ? "#ffffff" : "currentColor", 
+                  fontSize: 11, 
+                  fontFamily: "JetBrains Mono, monospace" 
+                }}
+                className="text-slate-400 dark:text-slate-500"
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                domain={["auto", "auto"]}
+                tick={{ 
+                  fill: highContrast ? "#ffffff" : "currentColor", 
+                  fontSize: 11, 
+                  fontFamily: "JetBrains Mono, monospace" 
+                }}
+                className="text-slate-400 dark:text-slate-500"
+                unit="°C"
+              />
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl shadow-lg font-sans">
+                        <p className="text-[10px] font-bold text-slate-400 font-mono mb-1">
+                          {payload[0].payload.date}
+                        </p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white mb-2">
+                          {label}
+                        </p>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className={`w-2.5 h-2.5 rounded-full ${chartColors.badgeHigh}`} />
+                            <span className="text-slate-500 dark:text-slate-400 font-medium">Daily High:</span>
+                            <span className="font-mono font-bold text-slate-900 dark:text-white">{payload[0].value}°C</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className={`w-2.5 h-2.5 rounded-full ${chartColors.badgeLow}`} />
+                            <span className="text-slate-500 dark:text-slate-400 font-medium">Daily Low:</span>
+                            <span className="font-mono font-bold text-slate-900 dark:text-white">{payload[1].value}°C</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs pt-1.5 border-t border-slate-100 dark:border-slate-900">
+                            <span className="text-slate-400">🌧️ Rain Prob:</span>
+                            <span className="font-mono font-bold text-blue-600 dark:text-blue-400 ml-auto">{payload[0].payload.precipitation}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Area
+                name="High Temp"
+                type="monotone"
+                dataKey="High Temp"
+                stroke={chartColors.highStroke}
+                strokeWidth={2.5}
+                fill={chartColors.highFill}
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationEasing="ease-out"
+              />
+              <Area
+                name="Low Temp"
+                type="monotone"
+                dataKey="Low Temp"
+                stroke={chartColors.lowStroke}
+                strokeWidth={2.5}
+                fill={chartColors.lowFill}
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationEasing="ease-out"
+              />
+            </RechartsAreaChart>
+          </ResponsiveContainer>
+        </motion.div>
+      </motion.section>
+
+      {/* 7-Day Weekly Outlook Display */}
       <motion.section 
         variants={itemVariants}
         className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"
@@ -614,10 +1066,15 @@ export default function WeatherDashboard({
       >
         <h2 id="daily-forecast-title" className="text-lg font-display font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 mb-5">
           <Calendar className="w-5 h-5 text-sky-600 dark:text-sky-400" />
-          5-Day Meteorological Outlook
+          7-Day Meteorological Outlook
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <motion.div 
+          variants={dailyContainerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-4"
+        >
           {weather.daily.map((day, idx) => {
             const isToday = idx === 0;
             const dateObj = new Date(day.date + "T12:00:00"); // avoid offset errors
@@ -625,9 +1082,11 @@ export default function WeatherDashboard({
             const numericLabel = dateObj.toLocaleDateString([], { month: "short", day: "numeric" });
 
             return (
-              <div 
+              <motion.div 
                 key={idx} 
-                className={`p-4 rounded-xl border flex flex-col justify-between items-center text-center transition-all-short ${
+                variants={dailyItemVariants}
+                whileHover={{ scale: 1.04, translateY: -3, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02)" }}
+                className={`p-4 rounded-xl border flex flex-col justify-between items-center text-center transition-colors duration-300 ${
                   isToday 
                     ? "bg-sky-50/40 border-sky-200 dark:bg-slate-800/40 dark:border-sky-900/60 shadow-sm" 
                     : "bg-slate-50/20 border-slate-100 dark:border-slate-800/50 hover:border-slate-200 dark:hover:border-slate-700"
@@ -666,10 +1125,10 @@ export default function WeatherDashboard({
                     <span>UV {Math.round(day.uvIndexMax)}</span>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </motion.section>
     </motion.div>
   );

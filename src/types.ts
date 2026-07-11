@@ -22,6 +22,7 @@ export interface CurrentWeather {
   precipitationProb: number;
   uvIndex: number;
   pressure: number;
+  visibility?: number;
   time: string;
 }
 

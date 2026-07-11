@@ -19,8 +19,6 @@ import {
   CloudUpload, 
   ClipboardCheck, 
   Accessibility, 
-  Volume2, 
-  VolumeX, 
   Check, 
   X,
   AlertTriangle,
@@ -97,7 +95,6 @@ export default function App() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [highContrast, setHighContrast] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [screenReaderSound, setScreenReaderSound] = useState(true);
   const [syncCode, setSyncCode] = useState<string | undefined>(undefined);
 
   // Screen Reader Accessibility Log: Tracks what is "spoken" to screen readers
@@ -227,15 +224,7 @@ export default function App() {
   const announceSpeech = (text: string, silent = false) => {
     setActiveSpeech(text);
     setSpeechLogs((prev) => [text, ...prev].slice(0, 50));
-
-    // Synthesize audible speech using SpeechSynthesis API (if enabled by settings)
-    if (!silent && screenReaderSound && typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel(); // cancel pending
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.05;
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
-    }
+    // Audio speech synthesis removed
   };
 
   // ------------------------------------------
@@ -248,7 +237,7 @@ export default function App() {
     announceSpeech(`Fetching real-time atmospheric telemetry for ${loc.name}...`, true);
 
     try {
-      const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,precipitation_probability,uv_index,weather_code,pressure_msl&hourly=temperature_2m,apparent_temperature,precipitation_probability,weather_code,relative_humidity_2m,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max&timezone=auto`;
+      const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,precipitation_probability,uv_index,weather_code,pressure_msl,visibility&hourly=temperature_2m,apparent_temperature,precipitation_probability,weather_code,relative_humidity_2m,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max&timezone=auto`;
       const res = await fetch(forecastUrl);
       if (!res.ok) throw new Error("Weather Service unavailable.");
       const data = await res.json();
@@ -266,6 +255,7 @@ export default function App() {
         precipitationProb: data.current.precipitation_probability,
         uvIndex: data.current.uv_index,
         pressure: data.current.pressure_msl,
+        visibility: data.current.visibility !== undefined ? data.current.visibility : 10000,
         time: data.current.time
       };
 
@@ -287,9 +277,9 @@ export default function App() {
         }
       }
 
-      // Map daily (limit 5 elements)
+      // Map daily (limit 7 elements)
       const daily: DailyForecast[] = [];
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 7; i++) {
         if (data.daily.time[i] !== undefined) {
           daily.push({
             date: data.daily.time[i],
@@ -466,8 +456,8 @@ export default function App() {
     };
     setToasts((prev) => [newToast, ...prev]);
 
-    // Audible alarm speech
-    announceSpeech(`EMERGENCY PUSH BROADCAST: ${alert.severity} alert. ${alert.event}. Instructions: ${alert.description}`);
+    // Audible alarm speech (Silenced to prevent unwanted voice synthesis for push notifications)
+    announceSpeech(`EMERGENCY PUSH BROADCAST: ${alert.severity} alert. ${alert.event}. Instructions: ${alert.description}`, true);
 
     // Auto dismiss toasts after 7 seconds
     setTimeout(() => {
@@ -540,12 +530,179 @@ export default function App() {
     }
   };
 
+  const getWeatherThemeClasses = () => {
+    if (highContrast) {
+      return {
+        bg: "bg-black text-white selection:bg-yellow-400 selection:text-black",
+        header: "border-yellow-400 border-2 bg-black text-white",
+        logo: "bg-white text-black border-2 border-yellow-400",
+        badgeBg: "bg-black border-yellow-400 text-yellow-400",
+        badgeDot: "bg-yellow-400",
+        accentText: "text-yellow-400",
+        themeLabel: "High Contrast"
+      };
+    }
+
+    if (!weather) {
+      // Default slate theme when no weather is loaded yet
+      return {
+        bg: theme === "light" 
+          ? "bg-slate-100 text-slate-800" 
+          : "bg-slate-950 text-slate-200",
+        header: theme === "light" ? "bg-white border-slate-200 dark:border-slate-800" : "bg-slate-900 border-slate-800",
+        logo: "bg-sky-600 text-white",
+        badgeBg: "bg-sky-50 dark:bg-sky-950/30 border-sky-100 dark:border-sky-900/30 text-sky-600 dark:text-sky-400",
+        badgeDot: "bg-sky-500",
+        accentText: "text-sky-600 dark:text-sky-400",
+        themeLabel: "Dynamic Slate"
+      };
+    }
+
+    const code = weather.current.weatherCode;
+    const temp = weather.current.temp;
+
+    // 1. Determine condition type
+    let cond = "clear";
+    if (code === 0 || code === 1) cond = "clear";
+    else if (code === 2 || code === 3 || code === 45 || code === 48) cond = "cloudy";
+    else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) cond = "rain";
+    else if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) cond = "snow";
+    else if (code >= 95 && code <= 99) cond = "storm";
+
+    // 2. Map colors dynamically
+    if (cond === "clear") {
+      const isWarm = temp >= 18;
+      if (theme === "light") {
+        return {
+          bg: isWarm 
+            ? "bg-gradient-to-br from-amber-50/70 via-orange-50/25 to-sky-50/60 text-slate-800"
+            : "bg-gradient-to-br from-sky-50/80 via-slate-50 to-blue-50/40 text-slate-800",
+          header: isWarm ? "bg-white/90 border-amber-100" : "bg-white/90 border-sky-100",
+          logo: isWarm ? "bg-amber-500 text-white" : "bg-sky-600 text-white",
+          badgeBg: isWarm 
+            ? "bg-amber-50 border-amber-200 text-amber-700" 
+            : "bg-sky-50 border-sky-200 text-sky-700",
+          badgeDot: isWarm ? "bg-amber-500" : "bg-sky-500",
+          accentText: isWarm ? "text-amber-600" : "text-sky-600",
+          themeLabel: isWarm ? "Sunny Amber" : "Breezy Azure"
+        };
+      } else {
+        return {
+          bg: isWarm
+            ? "bg-gradient-to-br from-slate-950 via-amber-950/15 to-stone-900 text-slate-200"
+            : "bg-gradient-to-br from-slate-950 via-sky-950/15 to-slate-900 text-slate-200",
+          header: isWarm ? "bg-slate-900/90 border-amber-900/30" : "bg-slate-900/90 border-sky-900/30",
+          logo: isWarm ? "bg-amber-600 text-amber-50" : "bg-sky-600 text-sky-50",
+          badgeBg: isWarm 
+            ? "bg-amber-950/40 border-amber-900/50 text-amber-300" 
+            : "bg-sky-950/40 border-sky-900/50 text-sky-300",
+          badgeDot: isWarm ? "bg-amber-400" : "bg-sky-400",
+          accentText: isWarm ? "text-amber-400" : "text-sky-400",
+          themeLabel: isWarm ? "Desert Sunset" : "Arctic Zenith"
+        };
+      }
+    }
+
+    if (cond === "rain") {
+      if (theme === "light") {
+        return {
+          bg: "bg-gradient-to-br from-blue-50/80 via-indigo-50/30 to-slate-100 text-slate-800",
+          header: "bg-white/90 border-indigo-100",
+          logo: "bg-indigo-600 text-white",
+          badgeBg: "bg-indigo-50 border-indigo-200 text-indigo-700",
+          badgeDot: "bg-indigo-500",
+          accentText: "text-indigo-600",
+          themeLabel: "Rainy Lavender"
+        };
+      } else {
+        return {
+          bg: "bg-gradient-to-br from-slate-950 via-indigo-950/25 to-slate-900 text-slate-200",
+          header: "bg-slate-900/90 border-indigo-900/40",
+          logo: "bg-indigo-600 text-indigo-50",
+          badgeBg: "bg-indigo-950/40 border-indigo-900/50 text-indigo-300",
+          badgeDot: "bg-indigo-400",
+          accentText: "text-indigo-400",
+          themeLabel: "Ocean Storm"
+        };
+      }
+    }
+
+    if (cond === "snow") {
+      if (theme === "light") {
+        return {
+          bg: "bg-gradient-to-br from-sky-50/70 via-slate-50 to-teal-50/40 text-slate-800",
+          header: "bg-white/90 border-teal-100",
+          logo: "bg-teal-600 text-white",
+          badgeBg: "bg-teal-50 border-teal-200 text-teal-700",
+          badgeDot: "bg-teal-500",
+          accentText: "text-teal-600",
+          themeLabel: "Frosty Mint"
+        };
+      } else {
+        return {
+          bg: "bg-gradient-to-br from-slate-950 via-teal-950/20 to-slate-950 text-slate-200",
+          header: "bg-slate-900/90 border-teal-900/30",
+          logo: "bg-teal-600 text-teal-50",
+          badgeBg: "bg-teal-950/40 border-teal-900/50 text-teal-300",
+          badgeDot: "bg-teal-400",
+          accentText: "text-teal-400",
+          themeLabel: "Frozen Glade"
+        };
+      }
+    }
+
+    if (cond === "storm") {
+      if (theme === "light") {
+        return {
+          bg: "bg-gradient-to-br from-violet-50 via-purple-50/20 to-slate-100 text-slate-800",
+          header: "bg-white/90 border-purple-100",
+          logo: "bg-purple-600 text-white",
+          badgeBg: "bg-purple-50 border-purple-200 text-purple-700",
+          badgeDot: "bg-purple-500",
+          accentText: "text-purple-600",
+          themeLabel: "Electric Orchid"
+        };
+      } else {
+        return {
+          bg: "bg-gradient-to-br from-slate-950 via-purple-950/25 to-slate-950 text-slate-200",
+          header: "bg-slate-900/90 border-purple-900/40",
+          logo: "bg-purple-600 text-purple-100",
+          badgeBg: "bg-purple-950/40 border-purple-900/50 text-purple-300",
+          badgeDot: "bg-purple-400",
+          accentText: "text-purple-400",
+          themeLabel: "Supernova Purple"
+        };
+      }
+    }
+
+    // cond === "cloudy"
+    if (theme === "light") {
+      return {
+        bg: "bg-gradient-to-br from-slate-150 via-zinc-100 to-slate-250 text-slate-800",
+        header: "bg-white/90 border-slate-200",
+        logo: "bg-slate-600 text-white",
+        badgeBg: "bg-slate-100 border-slate-300 text-slate-700",
+        badgeDot: "bg-slate-500",
+        accentText: "text-slate-600",
+        themeLabel: "Muted Nimbus"
+      };
+    } else {
+      return {
+        bg: "bg-gradient-to-br from-slate-950 via-zinc-900/10 to-slate-900 text-slate-200",
+        header: "bg-slate-900/90 border-slate-800",
+        logo: "bg-slate-600 text-slate-100",
+        badgeBg: "bg-slate-800 border-slate-700 text-slate-300",
+        badgeDot: "bg-slate-400",
+        accentText: "text-slate-400",
+        themeLabel: "Overcast Obsidian"
+      };
+    }
+  };
+
+  const wTheme = getWeatherThemeClasses();
+
   return (
-    <div className={`min-h-screen font-sans flex flex-col justify-between ${
-      highContrast 
-        ? "bg-black text-white selection:bg-yellow-400 selection:text-black" 
-        : "bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-200"
-    }`}>
+    <div className={`min-h-screen font-sans flex flex-col justify-between transition-all duration-1000 ${wTheme.bg}`}>
       
       {/* 1. Skip to main content bypass link for keyboard accessibility (WCAG bypass mandate) */}
       <a href="#main-content" className="skip-link">
@@ -592,57 +749,34 @@ export default function App() {
       </div>
 
       {/* Accessible Global Header */}
-      <header className={`border-b ${
-        highContrast 
-          ? "border-yellow-400 border-2 bg-black text-white" 
-          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-      }`}>
+      <header className={`border-b transition-all duration-1000 ${wTheme.header}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           
           {/* Brand/Heading Landmark */}
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-2xl ${
-              highContrast 
-                ? "bg-white text-black border-2 border-yellow-400" 
-                : "bg-sky-600 text-white"
-            }`} aria-hidden="true">
-              <Compass className="w-7 h-7" />
+            <div className={`p-2.5 rounded-2xl transition-all duration-1000 ${wTheme.logo}`} aria-hidden="true">
+              <Compass className="w-7 h-7 animate-spin-slow" />
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-sky-600 dark:text-sky-400 font-mono">
-                Meteorological Intel v2.1
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-sky-600 dark:text-sky-400 font-mono">
+                  Meteorological Intel v2.1
+                </span>
+                {wTheme.themeLabel && (
+                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold font-mono border transition-all duration-1000 ${wTheme.badgeBg}`}>
+                    <span className={`w-1 h-1 rounded-full ${wTheme.badgeDot} animate-ping`} />
+                    {wTheme.themeLabel}
+                  </span>
+                )}
+              </div>
               <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight text-slate-900 dark:text-white leading-none">
                 WEATHER INTELLIGENCE
               </h1>
             </div>
           </div>
-
           {/* Accessible Settings and search toggles */}
           <div className="flex flex-wrap items-center gap-2">
             
-            {/* Screen Reader Simulation audio switch */}
-            <button
-              onClick={() => {
-                setScreenReaderSound(!screenReaderSound);
-                announceSpeech(
-                  !screenReaderSound 
-                    ? "Interactive screen reader emulation initialized." 
-                    : "Emulated audio speech muted."
-                );
-              }}
-              className={`p-2 rounded-xl border transition-all-short cursor-pointer accessible-focus ${
-                screenReaderSound 
-                  ? "bg-sky-50 dark:bg-slate-800 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-slate-700" 
-                  : "bg-white border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800 hover:text-slate-600"
-              }`}
-              title={screenReaderSound ? "Mute automatic screen reader speaker" : "Enable automatic screen reader speaker"}
-              aria-label={screenReaderSound ? "Mute artificial audio narrations" : "Unmute artificial audio narrations"}
-              aria-pressed={screenReaderSound}
-            >
-              {screenReaderSound ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-            </button>
-
             {/* High Contrast Selector */}
             <button
               onClick={toggleHighContrast}
@@ -994,7 +1128,6 @@ export default function App() {
 
       </main>
 
-      {/* Interactive Screen Reader Emulator Log box (WCAG validation helper) */}
       <footer className={`border-t p-4 shrink-0 ${
         highContrast 
           ? "border-yellow-400 bg-black text-white" 
@@ -1002,27 +1135,7 @@ export default function App() {
       }`}>
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           
-          {/* SR Emulation Stream logs */}
-          <div className="flex items-center gap-3 w-full md:max-w-xl">
-            <div className={`p-2 rounded-xl shrink-0 ${
-              highContrast 
-                ? "bg-white text-black border border-yellow-400" 
-                : "bg-sky-50 dark:bg-slate-800 text-sky-600 dark:text-sky-400"
-            }`} aria-hidden="true">
-              <Accessibility className="w-5 h-5 animate-pulse" />
-            </div>
-            
-            <div className="w-full min-w-0" aria-live="assertive" aria-atomic="true">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block mb-0.5">
-                Active Screen Reader Emulation Stream
-              </span>
-              <p className="text-xs font-mono font-medium truncate text-slate-700 dark:text-slate-300">
-                {activeSpeech ? `"${activeSpeech}"` : '"Aria Announcement logs are quiet. Navigate or search to announce."'}
-              </p>
-            </div>
-          </div>
-
-          <div className="text-[10px] text-slate-400 text-center md:text-right shrink-0">
+          <div className="text-[10px] text-slate-400 text-center md:text-right shrink-0 md:ml-auto">
             <p className="font-mono">All operations compliant with Section 508 & WCAG 2.1 AAA.</p>
             <p className="mt-0.5">Designed with React 19 + Tailwind v4 + Express backend.</p>
           </div>
