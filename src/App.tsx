@@ -1026,11 +1026,11 @@ export default function App() {
 
             {/* Right Quick favorites list layout */}
             <div className="md:col-span-5 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mr-1.5 flex items-center gap-1">
+              <span className={`text-xs font-bold ${highContrast ? "text-yellow-400 font-extrabold" : "text-slate-600 dark:text-slate-300"} uppercase tracking-widest mr-1.5 flex items-center gap-1`}>
                 <Heart className="w-4 h-4 text-rose-500 fill-current" /> Favorites:
               </span>
               {favorites.length === 0 ? (
-                <span className="text-xs text-slate-400 italic">No favorites saved.</span>
+                <span className={`text-xs ${highContrast ? "text-white font-medium" : "text-slate-600 dark:text-slate-400"} italic`}>No favorites saved.</span>
               ) : (
                 favorites.map((fav, i) => (
                   <button

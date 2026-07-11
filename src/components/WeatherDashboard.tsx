@@ -423,7 +423,7 @@ export default function WeatherDashboard({
               <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
             </button>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className={`text-sm ${highContrast ? "text-yellow-400 font-bold" : "text-slate-600 dark:text-slate-300"} mt-1`}>
             {weather.location.admin1 ? `${weather.location.admin1}, ` : ""}{weather.location.country || ""} 
             <span className="mx-2 font-mono" aria-hidden="true">•</span>
             Lat: <span className="font-mono">{weather.location.latitude.toFixed(2)}</span>, Lon: <span className="font-mono">{weather.location.longitude.toFixed(2)}</span>
@@ -440,7 +440,7 @@ export default function WeatherDashboard({
               <Info className="w-4 h-4" /> Offline Cache Active
             </span>
           )}
-          <span className="text-xs text-slate-400 font-mono" aria-label={`Weather metrics compiled at ${weather.fetchedAt}`}>
+          <span className={`text-xs ${highContrast ? "text-white font-bold" : "text-slate-600 dark:text-slate-300"} font-mono`} aria-label={`Weather metrics compiled at ${weather.fetchedAt}`}>
             Fetched: {new Date(weather.fetchedAt).toLocaleTimeString()}
           </span>
 
@@ -476,10 +476,10 @@ export default function WeatherDashboard({
                   <span className="text-6xl font-display font-bold tracking-tighter text-slate-900 dark:text-white">
                     {Math.round(weather.current.temp)}
                   </span>
-                  <span className="text-3xl text-slate-400 font-light" aria-hidden="true">°C</span>
+                  <span className={`text-3xl ${highContrast ? "text-yellow-400 font-bold" : "text-slate-500 dark:text-slate-300"} font-light`} aria-hidden="true">°C</span>
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Feels like <span className="font-bold font-mono text-slate-800 dark:text-slate-200">{Math.round(weather.current.apparentTemp)}°C</span>
+                <p className={`text-sm ${highContrast ? "text-white font-bold" : "text-slate-600 dark:text-slate-300"} mt-1`}>
+                  Feels like <span className="font-bold font-mono text-slate-800 dark:text-slate-100">{Math.round(weather.current.apparentTemp)}°C</span>
                 </p>
               </div>
               <div className="text-6xl" role="img" aria-label={weather.current.weatherDesc}>
@@ -489,7 +489,7 @@ export default function WeatherDashboard({
 
             <div className="mt-4 inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 px-3 py-1.5 rounded-lg">
               {getWeatherIcon(weather.current.weatherCode, "w-5 h-5")}
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <span className={`text-sm font-semibold ${highContrast ? "text-white" : "text-slate-800 dark:text-slate-200"}`}>
                 {weather.current.weatherDesc}
               </span>
             </div>
@@ -502,7 +502,7 @@ export default function WeatherDashboard({
                 <Droplets className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs text-slate-400">Humidity</p>
+                <p className={`text-xs ${highContrast ? "text-yellow-400 font-bold" : "text-slate-600 dark:text-slate-300"} font-medium`}>Humidity</p>
                 <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{weather.current.humidity}%</p>
               </div>
             </div>
@@ -512,7 +512,7 @@ export default function WeatherDashboard({
                 <Wind className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs text-slate-400">Wind speed</p>
+                <p className={`text-xs ${highContrast ? "text-yellow-400 font-bold" : "text-slate-600 dark:text-slate-300"} font-medium`}>Wind speed</p>
                 <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{weather.current.windSpeed} km/h</p>
               </div>
             </div>
@@ -549,7 +549,7 @@ export default function WeatherDashboard({
                       <Sun className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">UV Index</p>
+                      <p className={`text-xs ${highContrast ? "text-yellow-400 font-bold" : "text-slate-600 dark:text-slate-300"} font-medium`}>UV Index</p>
                       <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{weather.current.uvIndex}</p>
                     </div>
                   </div>
@@ -559,7 +559,7 @@ export default function WeatherDashboard({
                       <CloudRain className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">Rain Chance</p>
+                      <p className={`text-xs ${highContrast ? "text-yellow-400 font-bold" : "text-slate-600 dark:text-slate-300"} font-medium`}>Rain Chance</p>
                       <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{weather.current.precipitationProb}%</p>
                     </div>
                   </div>
@@ -569,7 +569,7 @@ export default function WeatherDashboard({
                       <Compass className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">Pressure</p>
+                      <p className={`text-xs ${highContrast ? "text-yellow-400 font-bold" : "text-slate-600 dark:text-slate-300"} font-medium`}>Pressure</p>
                       <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">{Math.round(weather.current.pressure)} hPa</p>
                     </div>
                   </div>
@@ -579,7 +579,7 @@ export default function WeatherDashboard({
                       <Eye className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">Visibility</p>
+                      <p className={`text-xs ${highContrast ? "text-yellow-400 font-bold" : "text-slate-600 dark:text-slate-300"} font-medium`}>Visibility</p>
                       <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">
                         {((weather.current.visibility !== undefined ? weather.current.visibility : 10000) / 1000).toFixed(1)} km
                       </p>
@@ -751,10 +751,10 @@ export default function WeatherDashboard({
               <Clock className="w-5 h-5 text-sky-600 dark:text-sky-400" />
               Customizable Hourly Widget ({widgets.hourlyHoursCount}h Outlook)
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">Customize metrics, display styles and hours limits via the Widgets settings tab.</p>
+            <p className={`text-xs ${highContrast ? "text-white font-semibold" : "text-slate-600 dark:text-slate-300"} mt-0.5`}>Customize metrics, display styles and hours limits via the Widgets settings tab.</p>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-center">
-            <span className="text-xs text-slate-400 uppercase tracking-widest font-mono border border-slate-200 dark:border-slate-800 px-2 py-1 rounded">
+            <span className={`text-xs ${highContrast ? "text-yellow-400 border-yellow-400 font-bold" : "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800"} uppercase tracking-widest font-mono border px-2 py-1 rounded`}>
               Layout: {widgets.layout}
             </span>
           </div>
@@ -777,7 +777,7 @@ export default function WeatherDashboard({
                 tabIndex={0}
                 aria-label={`Hourly forecast for ${new Date(hour.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}: ${hour.temp}°C, feels like ${hour.apparentTemp}°C, ${hour.weatherDesc}`}
               >
-                <p className="text-xs text-slate-500 font-mono">
+                <p className={`text-xs ${highContrast ? "text-white font-bold" : "text-slate-600 dark:text-slate-300"} font-mono`}>
                   {new Date(hour.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </p>
                 <div className="text-3xl my-2" aria-hidden="true">
@@ -792,7 +792,7 @@ export default function WeatherDashboard({
                     </p>
                   )}
                   {widgets.visibleMetrics.includes("apparentTemp") && (
-                    <p className="text-[11px] text-slate-400">
+                    <p className={`text-[11px] ${highContrast ? "text-yellow-400 font-semibold" : "text-slate-600 dark:text-slate-400"}`}>
                       App: <span className="font-mono">{Math.round(hour.apparentTemp)}°C</span>
                     </p>
                   )}
@@ -807,7 +807,7 @@ export default function WeatherDashboard({
                     </p>
                   )}
                   {widgets.visibleMetrics.includes("windSpeed") && (
-                    <p className="text-[10px] text-slate-400 font-mono">
+                    <p className={`text-[10px] ${highContrast ? "text-white font-bold" : "text-slate-600 dark:text-slate-300"} font-mono`}>
                       💨{hour.windSpeed}km/h
                     </p>
                   )}
@@ -839,7 +839,7 @@ export default function WeatherDashboard({
                 aria-label={`Forecast at ${new Date(hour.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}: ${hour.temp} degrees Celcius.`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold font-mono text-slate-600 dark:text-slate-400 w-16">
+                  <span className={`text-sm font-bold font-mono ${highContrast ? "text-yellow-400" : "text-slate-700 dark:text-slate-300"} w-16`}>
                     {new Date(hour.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                   <div className="text-2xl" aria-hidden="true">{getWeatherEmoji(hour.weatherCode)}</div>
@@ -855,7 +855,7 @@ export default function WeatherDashboard({
                     </span>
                   )}
                   {widgets.visibleMetrics.includes("apparentTemp") && (
-                    <span className="text-xs text-slate-400 hidden md:inline">
+                    <span className={`text-xs ${highContrast ? "text-white font-medium" : "text-slate-600 dark:text-slate-300"} hidden md:inline`}>
                       Feels: <span className="font-mono text-slate-700 dark:text-slate-300">{Math.round(hour.apparentTemp)}°C</span>
                     </span>
                   )}
@@ -870,7 +870,7 @@ export default function WeatherDashboard({
                     </span>
                   )}
                   {widgets.visibleMetrics.includes("windSpeed") && (
-                    <span className="text-xs text-slate-400 font-mono hidden md:inline">
+                    <span className={`text-xs ${highContrast ? "text-white font-medium" : "text-slate-600 dark:text-slate-300"} font-mono hidden md:inline`}>
                       💨 {hour.windSpeed} km/h
                     </span>
                   )}
@@ -896,7 +896,7 @@ export default function WeatherDashboard({
                 tabIndex={0}
                 aria-label={`Forecast at ${new Date(hour.time).toLocaleTimeString([], {hour: '2-digit'})} is ${Math.round(hour.temp)} degrees`}
               >
-                <span className="font-bold text-slate-400">
+                <span className={`font-bold ${highContrast ? "text-yellow-400" : "text-slate-600 dark:text-slate-400"}`}>
                   {new Date(hour.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
                 <span aria-hidden="true">{getWeatherEmoji(hour.weatherCode)}</span>
@@ -919,7 +919,7 @@ export default function WeatherDashboard({
               <TrendingUp className="w-5 h-5 text-sky-600 dark:text-sky-400" />
               7-Day Temperature Visualizer
             </h2>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+            <p className={`text-xs ${highContrast ? "text-white font-semibold" : "text-slate-600 dark:text-slate-300"} mt-1`}>
               Interactive meteorological high-low trends and precipitation envelope
             </p>
           </div>
@@ -1098,7 +1098,7 @@ export default function WeatherDashboard({
                   <p className={`text-sm font-bold ${isToday ? "text-sky-600 dark:text-sky-400" : "text-slate-800 dark:text-slate-200"}`}>
                     {dayLabel}
                   </p>
-                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">{numericLabel}</p>
+                  <p className={`text-[11px] ${highContrast ? "text-yellow-400 font-semibold" : "text-slate-600 dark:text-slate-300"} font-mono mt-0.5`}>{numericLabel}</p>
                 </div>
 
                 <div className="text-4xl my-3.5" aria-hidden="true">
@@ -1106,13 +1106,13 @@ export default function WeatherDashboard({
                 </div>
 
                 <div className="w-full">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate mb-2 font-medium">
+                  <p className={`text-xs ${highContrast ? "text-white font-semibold" : "text-slate-700 dark:text-slate-300"} truncate mb-2 font-medium`}>
                     {day.weatherDesc}
                   </p>
                   
                   {/* Temperature slider/min-max display */}
                   <div className="flex items-center justify-center gap-2.5 bg-slate-100/60 dark:bg-slate-800/50 py-1.5 px-2 rounded-lg font-mono text-xs">
-                    <span className="text-slate-400" title="Minimum temperature">{Math.round(day.tempMin)}°</span>
+                    <span className={`${highContrast ? "text-yellow-400 font-bold" : "text-slate-600 dark:text-slate-300"}`} title="Minimum temperature">{Math.round(day.tempMin)}°</span>
                     <div className="h-1.5 w-8 bg-slate-200 dark:bg-slate-700 rounded-full relative" aria-hidden="true">
                       <div className="absolute top-0 bottom-0 left-1/4 right-1/4 bg-sky-400 rounded-full" />
                     </div>
